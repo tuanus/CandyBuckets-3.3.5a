@@ -112,6 +112,23 @@ end
 local icons = {}
 local mapHooked = false
 
+-- Astrolabe (bundled with TomTom, or the standalone !Astrolabe) can plot a zone's
+-- point on whatever map is currently open - including the continent overview.
+-- Resolved lazily because TomTom loads after this addon.
+local astro
+local function GetAstrolabe()
+	if astro == nil then
+		astro = false
+		if _G.DongleStub then
+			local ok, lib = pcall(_G.DongleStub, "Astrolabe-0.4")
+			if ok and type(lib) == "table" and lib.PlaceIconOnWorldMap then
+				astro = lib
+			end
+		end
+	end
+	return astro
+end
+
 local function GetViewedZoneName()
 	-- inside an instance the map shows the instance itself
 	if IsInInstance() then
@@ -207,6 +224,22 @@ local function CreateIcon()
 	return f
 end
 
+local function StyleIcon(icon, q, completed)
+	icon.entry = q
+	icon.tex:SetTexture(q.texture)
+	icon.tex:SetVertexColor(completed and 0.4 or 1, completed and 0.4 or 1, completed and 0.4 or 1)
+	icon.bg:SetVertexColor(q.color[1], q.color[2], q.color[3])
+end
+
+local function AcquireIcon(index)
+	local icon = icons[index]
+	if not icon then
+		icon = CreateIcon()
+		icons[index] = icon
+	end
+	return icon
+end
+
 local function UpdateMap()
 	for i = 1, #icons do
 		icons[i]:Hide()
@@ -217,34 +250,49 @@ local function UpdateMap()
 		return
 	end
 
-	local zoneName = GetViewedZoneName()
-	if not zoneName then
-		return
-	end
-	local zoneKey = Canon(zoneName)
-
 	local width = WorldMapDetailFrame:GetWidth()
 	local height = WorldMapDetailFrame:GetHeight()
 	if not width or width <= 1 then
 		return
 	end
 
+	-- Prefer Astrolabe, which plots any zone's point on the map that is open
+	-- (both the zone view and the continent overview). Fall back to plain
+	-- name matching when it isn't available.
+	local Astrolabe = GetAstrolabe()
+	local curC = GetCurrentMapContinent()
+	local useAstrolabe = Astrolabe and curC and curC >= 1 and not IsInInstance()
+
+	local zoneKey
+	if not useAstrolabe then
+		local zoneName = GetViewedZoneName()
+		if not zoneName then
+			return
+		end
+		zoneKey = Canon(zoneName)
+	end
+
 	local index = 0
 	for i = 1, #ns.QUESTS do
 		local q = ns.QUESTS[i]
-		if q.key == zoneKey then
-			local completed = ns.COMPLETED[q.quest]
-			if not completed or ns.SHOW_COMPLETED then
-				index = index + 1
-				local icon = icons[index]
-				if not icon then
-					icon = CreateIcon()
-					icons[index] = icon
+		local completed = ns.COMPLETED[q.quest]
+		if not completed or ns.SHOW_COMPLETED then
+			if useAstrolabe then
+				local c, z = GetZoneCZ(q.zone)
+				if c then
+					index = index + 1
+					local icon = AcquireIcon(index)
+					StyleIcon(icon, q, completed)
+					local ok = pcall(Astrolabe.PlaceIconOnWorldMap, Astrolabe,
+						WorldMapDetailFrame, icon, c, z, q.x / 100, q.y / 100)
+					if not ok then
+						icon:Hide()
+					end
 				end
-				icon.entry = q
-				icon.tex:SetTexture(q.texture)
-				icon.tex:SetVertexColor(completed and 0.4 or 1, completed and 0.4 or 1, completed and 0.4 or 1)
-				icon.bg:SetVertexColor(q.color[1], q.color[2], q.color[3])
+			elseif q.key == zoneKey then
+				index = index + 1
+				local icon = AcquireIcon(index)
+				StyleIcon(icon, q, completed)
 				icon:ClearAllPoints()
 				icon:SetPoint("CENTER", WorldMapDetailFrame, "TOPLEFT", q.x / 100 * width, -(q.y / 100 * height))
 				icon:Show()

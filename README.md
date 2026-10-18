@@ -65,9 +65,15 @@ Instead, the coordinate database here was regenerated from **[wotlkdb.com](https
 - 627 upstream quest IDs checked → **335 are real 3.3.5 content** (the rest are post-WotLK and dropped).
 - 108 candy buckets · 75 elders · 152 bonfires, across 81 zones.
 
+## Map placement
+
+Icons are plotted on whichever map you have open — both when zoomed into a single zone and on
+the **continent overview**. That translation between maps is done with **Astrolabe** (bundled
+with TomTom, or the standalone `!Astrolabe` library). If Astrolabe isn't present, the addon
+falls back to showing objectives only for the zone you're currently viewing.
+
 ## Limitations
 
-- Icons are drawn on the **zone map**; the continent overview isn't populated.
 - TomTom hides waypoints while you're inside an instance, so the Lunar Festival elders that
   live in dungeons only report coordinates instead of setting an arrow.
 - Zone-name matching handles the known `Sunken Temple` ↔ `The Temple of Atal'Hakkar` difference.
