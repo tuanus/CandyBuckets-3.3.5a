@@ -25,8 +25,6 @@ into `World of Warcraft\Interface\AddOns\` — the folder inside is already name
 **From source:** copy the `CandyBuckets` folder in this repository into
 `World of Warcraft\Interface\AddOns\`.
 
-Then restart the client (or `/reload`).
-
 ## Usage
 
 Open the world map (**M**) — icons appear in both the zone view and the continent overview.
