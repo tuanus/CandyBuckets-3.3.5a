@@ -3,7 +3,8 @@
 A **backport of [CandyBuckets](https://github.com/Vladinator/wow-addon-candybuckets) by Vladinator** to
 the original Wrath of the Lich King client (**3.3.5a, build 12340, Interface 30300**).
 
-It shows map icons for the holiday objectives on the world map:
+It places the holiday objectives on the world map — both the zone view **and** the continent
+overview — and as dots on the **minimap**:
 
 - 🎃 **Hallow's End** — candy buckets
 - 🏮 **Lunar Festival** — elders
@@ -30,8 +31,9 @@ regenerated from 3.3.5 data.
 
 ## Usage
 
-Open the world map (**M**) and zoom into a zone — an icon appears at each objective,
-coloured by faction. Hover for the name, coordinates, side and quest ID.
+Open the world map (**M**) — icons appear in both the zone view and the continent overview.
+The minimap shows dots for objectives in the zone you're standing in. Icons are coloured by the
+faction that can complete them; hover for the name, coordinates, side and quest ID.
 
 - **Click an icon** → sets a **TomTom** waypoint (if TomTom is loaded), otherwise prints the coordinates to chat.
 - Completed objectives are hidden by default (so the map only shows what's left for the achievement).
@@ -44,6 +46,7 @@ coloured by faction. Hover for the name, coordinates, side and quest ID.
 | `/cb all` / `/cb none` | load / unload every event |
 | `/cb hallow` / `/cb lunar` / `/cb midsummer` | toggle a single event |
 | `/cb completed` | show/hide already-completed objectives |
+| `/cb minimap` | toggle the minimap dots |
 
 On first run it auto-selects whichever event is running by today's date (and shows all of
 them if none are). Your choice is saved.
@@ -64,13 +67,16 @@ Instead, the coordinate database here was regenerated from **[wotlkdb.com](https
 
 - 627 upstream quest IDs checked → **335 are real 3.3.5 content** (the rest are post-WotLK and dropped).
 - 108 candy buckets · 75 elders · 152 bonfires, across 81 zones.
+- The **faction** (`Alliance` / `Horde` / neutral) is also taken from the 3.3.5 quest itself, so the
+  filtering matches vanilla WotLK — e.g. the Northrend and Outland objectives are neutral there,
+  while the Eastern Kingdoms / Kalimdor inns are faction-locked.
 
-## Map placement
+## Map & minimap placement
 
-Icons are plotted on whichever map you have open — both when zoomed into a single zone and on
-the **continent overview**. That translation between maps is done with **Astrolabe** (bundled
-with TomTom, or the standalone `!Astrolabe` library). If Astrolabe isn't present, the addon
-falls back to showing objectives only for the zone you're currently viewing.
+World-map icons are plotted on whichever map is open — zone view **and** continent overview — using
+**Astrolabe** (bundled with TomTom, or the standalone `!Astrolabe` library) to translate coordinates
+between maps. Minimap dots use Astrolabe too. Without Astrolabe the addon falls back to showing
+objectives only for the zone you're viewing.
 
 ## Limitations
 

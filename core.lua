@@ -14,6 +14,7 @@ ns.QUESTS = {}
 ns.FACTION = 0
 ns.COMPLETED = {}
 ns.SHOW_COMPLETED = false
+ns.MINIMAP = true
 
 local CHAT = DEFAULT_CHAT_FRAME
 
@@ -69,6 +70,8 @@ local function InitDB()
 	end
 	if db.showCompleted == nil then db.showCompleted = false end
 	ns.SHOW_COMPLETED = db.showCompleted and true or false
+	if db.minimap == nil then db.minimap = true end
+	ns.MINIMAP = db.minimap and true or false
 end
 
 --------------------------------------------------------------------------------
@@ -228,7 +231,9 @@ local function StyleIcon(icon, q, completed)
 	icon.entry = q
 	icon.tex:SetTexture(q.texture)
 	icon.tex:SetVertexColor(completed and 0.4 or 1, completed and 0.4 or 1, completed and 0.4 or 1)
-	icon.bg:SetVertexColor(q.color[1], q.color[2], q.color[3])
+	if icon.bg then
+		icon.bg:SetVertexColor(q.color[1], q.color[2], q.color[3])
+	end
 end
 
 local function AcquireIcon(index)
@@ -311,6 +316,104 @@ local function HookMap()
 end
 
 --------------------------------------------------------------------------------
+-- Minimap
+--------------------------------------------------------------------------------
+
+local minimapPool = {}
+local minimapUsed = 0
+
+local function AcquireMinimapIcon(index)
+	local icon = minimapPool[index]
+	if not icon then
+		icon = CreateFrame("Frame", nil, Minimap)
+		icon:SetWidth(12)
+		icon:SetHeight(12)
+
+		icon.bg = icon:CreateTexture(nil, "BACKGROUND")
+		icon.bg:SetPoint("TOPLEFT", -1, 1)
+		icon.bg:SetPoint("BOTTOMRIGHT", 1, -1)
+		icon.bg:SetTexture(WHITE)
+
+		icon.tex = icon:CreateTexture(nil, "ARTWORK")
+		icon.tex:SetAllPoints(icon)
+		icon.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+		icon:EnableMouse(true)
+		icon:SetScript("OnEnter", OnIconEnter)
+		icon:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		icon:SetScript("OnMouseUp", OnIconClick)
+
+		minimapPool[index] = icon
+	end
+	return icon
+end
+
+local function ClearMinimapIcons()
+	if minimapUsed == 0 then return end
+	local Astrolabe = GetAstrolabe()
+	for i = 1, minimapUsed do
+		local icon = minimapPool[i]
+		if icon then
+			if Astrolabe then pcall(Astrolabe.RemoveIconFromMinimap, Astrolabe, icon) end
+			icon:Hide()
+			icon.entry = nil
+		end
+	end
+	minimapUsed = 0
+end
+
+-- Show the objectives for the zone the player is actually standing in.
+local function UpdateMinimap()
+	local Astrolabe = GetAstrolabe()
+	if not ns.MINIMAP or not Astrolabe then
+		ClearMinimapIcons()
+		return
+	end
+
+	local zone = GetRealZoneText()
+	local zoneKey = zone and Canon(zone)
+	if not zoneKey then
+		ClearMinimapIcons()
+		return
+	end
+
+	local wanted = {}
+	for i = 1, #ns.QUESTS do
+		local q = ns.QUESTS[i]
+		if q.key == zoneKey then
+			local completed = ns.COMPLETED[q.quest]
+			if not completed or ns.SHOW_COMPLETED then
+				local c, z = GetZoneCZ(q.zone)
+				if c then
+					wanted[#wanted + 1] = { q = q, c = c, z = z }
+				end
+			end
+		end
+	end
+
+	for i = #wanted + 1, minimapUsed do
+		local icon = minimapPool[i]
+		if icon then
+			pcall(Astrolabe.RemoveIconFromMinimap, Astrolabe, icon)
+			icon:Hide()
+			icon.entry = nil
+		end
+	end
+
+	for i = 1, #wanted do
+		local w = wanted[i]
+		local icon = AcquireMinimapIcon(i)
+		StyleIcon(icon, w.q, ns.COMPLETED[w.q.quest])
+		local ok = pcall(Astrolabe.PlaceIconOnMinimap, Astrolabe, icon, w.c, w.z, w.q.x / 100, w.q.y / 100)
+		if not ok then
+			icon:Hide()
+		end
+	end
+
+	minimapUsed = #wanted
+end
+
+--------------------------------------------------------------------------------
 -- Slash command
 --------------------------------------------------------------------------------
 
@@ -319,8 +422,10 @@ local function Status()
 	for _, ev in ipairs({ "hallow", "lunar", "midsummer" }) do
 		if db.events[ev] then list[#list + 1] = ev end
 	end
-	Print("loaded events: %s%s", (#list > 0) and table.concat(list, ", ") or "none",
-		ns.SHOW_COMPLETED and "  (showing completed)" or "")
+	Print("events: %s | minimap: %s | completed: %s",
+		(#list > 0) and table.concat(list, ", ") or "none",
+		ns.MINIMAP and "on" or "off",
+		ns.SHOW_COMPLETED and "shown" or "hidden")
 end
 
 SLASH_CANDYBUCKETS1 = "/candybuckets"
@@ -330,7 +435,7 @@ SlashCmdList["CANDYBUCKETS"] = function(msg)
 	msg = string.gsub(msg, "^%s*(.-)%s*$", "%1")
 
 	if msg == "" or msg == "help" then
-		Print("commands: /cb all | none | hallow | lunar | midsummer | completed")
+		Print("commands: /cb all | none | hallow | lunar | midsummer | completed | minimap")
 		Status()
 		return
 	elseif msg == "all" then
@@ -340,6 +445,9 @@ SlashCmdList["CANDYBUCKETS"] = function(msg)
 	elseif msg == "completed" then
 		db.showCompleted = not db.showCompleted
 		ns.SHOW_COMPLETED = db.showCompleted
+	elseif msg == "minimap" then
+		db.minimap = not db.minimap
+		ns.MINIMAP = db.minimap
 	elseif ns.modules[msg] then
 		db.events[msg] = not db.events[msg]
 	else
@@ -349,6 +457,7 @@ SlashCmdList["CANDYBUCKETS"] = function(msg)
 
 	RebuildQuests()
 	UpdateMap()
+	UpdateMinimap()
 	Status()
 end
 
@@ -361,8 +470,10 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("QUEST_QUERY_COMPLETE")
--- QUEST_FINISHED exists on 3.3.5 (QUEST_TURNED_IN does not); register defensively
+-- these vary a little by client, register defensively
 pcall(frame.RegisterEvent, frame, "QUEST_FINISHED")
+pcall(frame.RegisterEvent, frame, "ZONE_CHANGED_NEW_AREA")
+pcall(frame.RegisterEvent, frame, "ZONE_CHANGED")
 
 frame:SetScript("OnEvent", function(self, event, arg1)
 	if event == "ADDON_LOADED" then
@@ -377,16 +488,22 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 		ns.FACTION = (faction == "Alliance" and 1) or (faction == "Horde" and 2) or 3
 		QueryQuestsCompleted()
 		RebuildQuests()
+		UpdateMinimap()
 		Status()
 
 	elseif event == "QUEST_QUERY_COMPLETE" then
 		ns.COMPLETED = GetQuestsCompleted() or {}
 		UpdateMap()
+		UpdateMinimap()
 
 	elseif event == "QUEST_FINISHED" then
 		QueryQuestsCompleted()
 
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		UpdateMap()
+		UpdateMinimap()
+
+	elseif event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED" then
+		UpdateMinimap()
 	end
 end)
