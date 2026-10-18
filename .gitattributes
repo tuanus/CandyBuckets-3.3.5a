@@ -1,0 +1,3 @@
+# Keep the working tree and repository in LF — WoW reads either, but LF is the
+# conventional line ending for addon sources.
+* text=auto eol=lf
