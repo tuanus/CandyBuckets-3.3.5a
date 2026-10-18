@@ -19,15 +19,13 @@ regenerated from 3.3.5 data.
 
 ## Install
 
-1. Download/clone this repository.
-2. Copy the folder into `World of Warcraft\Interface\AddOns\`.
-3. **Rename the folder to `CandyBuckets`.**
+**Easiest:** download `CandyBuckets.zip` from the [latest release](../../releases/latest) and extract it
+into `World of Warcraft\Interface\AddOns\` — the folder inside is already named `CandyBuckets`.
 
-> ⚠️ Step 3 matters: on 3.3.5 the addon folder name must match the `.toc` file name
-> (`CandyBuckets.toc`). If you clone this repo the folder is called
-> `CandyBuckets-3.3.5a`, so rename it to `CandyBuckets` or the addon won't show up.
+**From source:** copy the `CandyBuckets` folder in this repository into
+`World of Warcraft\Interface\AddOns\`.
 
-4. Restart the client (or `/reload`).
+Then restart the client (or `/reload`).
 
 ## Usage
 
