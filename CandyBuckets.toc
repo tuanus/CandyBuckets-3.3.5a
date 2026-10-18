@@ -7,4 +7,5 @@
 db\hallow.lua
 db\lunar.lua
 db\midsummer.lua
+areas.lua
 core.lua

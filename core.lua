@@ -15,6 +15,7 @@ ns.FACTION = 0
 ns.COMPLETED = {}
 ns.SHOW_COMPLETED = false
 ns.MINIMAP = true
+ns.HIDE_OTHER = true
 
 local CHAT = DEFAULT_CHAT_FRAME
 
@@ -72,6 +73,8 @@ local function InitDB()
 	ns.SHOW_COMPLETED = db.showCompleted and true or false
 	if db.minimap == nil then db.minimap = true end
 	ns.MINIMAP = db.minimap and true or false
+	if db.hideOther == nil then db.hideOther = true end
+	ns.HIDE_OTHER = db.hideOther and true or false
 end
 
 --------------------------------------------------------------------------------
@@ -88,7 +91,9 @@ local function RebuildQuests()
 			local title = mod.title or "Event"
 			for i = 1, #mod.quests do
 				local q = mod.quests[i]
-				if q.quest and q.zone and (q.side == 3 or q.side == ns.FACTION) then
+				local area = ns.FACTION_AREA and ns.FACTION_AREA[q.quest]
+				local otherFactionArea = ns.HIDE_OTHER and area and area ~= ns.FACTION
+				if q.quest and q.zone and not otherFactionArea and (q.side == 3 or q.side == ns.FACTION) then
 					n = n + 1
 					ns.QUESTS[n] = {
 						quest = q.quest,
@@ -422,9 +427,10 @@ local function Status()
 	for _, ev in ipairs({ "hallow", "lunar", "midsummer" }) do
 		if db.events[ev] then list[#list + 1] = ev end
 	end
-	Print("events: %s | minimap: %s | completed: %s",
+	Print("events: %s | minimap: %s | enemy camps: %s | completed: %s",
 		(#list > 0) and table.concat(list, ", ") or "none",
 		ns.MINIMAP and "on" or "off",
+		ns.HIDE_OTHER and "hidden" or "shown",
 		ns.SHOW_COMPLETED and "shown" or "hidden")
 end
 
@@ -435,7 +441,7 @@ SlashCmdList["CANDYBUCKETS"] = function(msg)
 	msg = string.gsub(msg, "^%s*(.-)%s*$", "%1")
 
 	if msg == "" or msg == "help" then
-		Print("commands: /cb all | none | hallow | lunar | midsummer | completed | minimap")
+		Print("commands: /cb all | none | hallow | lunar | midsummer | completed | minimap | enemy")
 		Status()
 		return
 	elseif msg == "all" then
@@ -448,6 +454,9 @@ SlashCmdList["CANDYBUCKETS"] = function(msg)
 	elseif msg == "minimap" then
 		db.minimap = not db.minimap
 		ns.MINIMAP = db.minimap
+	elseif msg == "enemy" or msg == "otherfaction" then
+		db.hideOther = not db.hideOther
+		ns.HIDE_OTHER = db.hideOther
 	elseif ns.modules[msg] then
 		db.events[msg] = not db.events[msg]
 	else

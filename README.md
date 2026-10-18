@@ -47,6 +47,7 @@ faction that can complete them; hover for the name, coordinates, side and quest 
 | `/cb hallow` / `/cb lunar` / `/cb midsummer` | toggle a single event |
 | `/cb completed` | show/hide already-completed objectives |
 | `/cb minimap` | toggle the minimap dots |
+| `/cb enemy` | show/hide objectives that sit inside the other faction's camp |
 
 On first run it auto-selects whichever event is running by today's date (and shows all of
 them if none are). Your choice is saved.
@@ -70,6 +71,16 @@ Instead, the coordinate database here was regenerated from **[wotlkdb.com](https
 - The **faction** (`Alliance` / `Horde` / neutral) is also taken from the 3.3.5 quest itself, so the
   filtering matches vanilla WotLK — e.g. the Northrend and Outland objectives are neutral there,
   while the Eastern Kingdoms / Kalimdor inns are faction-locked.
+
+## Enemy camps
+
+A few 3.3.5 objectives carry no faction flag but sit *inside* an enemy base — for example the
+Silver Enclave in Dalaran, or Amberpine Lodge in Grizzly Hills. You get ported out and there's no
+quest marker for you, but the achievement data can't express that.
+
+`areas.lua` lists these spots (derived from the 3.3.5 NPC factions around each one) and they're
+hidden for the opposite faction by default. Toggle with **`/cb enemy`**. If you find one that's
+tagged wrong, it's a one-line edit in `areas.lua` (`[questID] = 1` Alliance / `2` Horde).
 
 ## Map & minimap placement
 
